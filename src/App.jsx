@@ -31,7 +31,6 @@ const copy = {
     nav: ['About', 'Projects', 'Skills', 'Education', 'Contact'],
     themeLabel: 'Toggle light/dark theme',
     menuLabel: 'Open menu',
-    eyebrow: 'Open to internship & junior opportunities',
     heroTitle: <>Build modern products with <span>systems thinking</span> and a <span className="accent-alt">3D perspective.</span></>,
     viewProjects: 'View projects',
     viewCv: 'View CV',
