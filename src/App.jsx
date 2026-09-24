@@ -29,11 +29,21 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [menuOpen, setMenuOpen] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [showWelcome, setShowWelcome] = useState(true)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    const closeWelcome = (event) => {
+      if (event.key === 'Escape') setShowWelcome(false)
+    }
+
+    document.addEventListener('keydown', closeWelcome)
+    return () => document.removeEventListener('keydown', closeWelcome)
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -59,6 +69,43 @@ function App() {
   return (
     <div className="site-shell">
       <div className="noise" aria-hidden="true" />
+
+      {showWelcome ? (
+        <div
+          className="welcome-overlay"
+          role="presentation"
+          onClick={() => setShowWelcome(false)}
+        >
+          <section
+            className="welcome-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="welcome-close"
+              type="button"
+              onClick={() => setShowWelcome(false)}
+              aria-label="Đóng lời chào"
+            >
+              <X size={18} />
+            </button>
+            <p className="kicker">Welcome</p>
+            <h2 id="welcome-title">Xin chào Anh/Chị HR</h2>
+            <p className="welcome-message">
+              Xin cảm ơn các Anh/Chị HR đã dành thời gian để xem qua Portfolio của em, tùy vào tình trạng tốc độ Internet mà các hình ảnh có thể tải chậm, mong Anh/Chị có thể thông cảm cho em. Mong rằng mọi người sẽ có trải nghiệm ưng ý và em có cơ hội hợp tác với Anh/Chị trong tương lai ạ.
+            </p>
+            <button
+              className="button button-primary welcome-action"
+              type="button"
+              onClick={() => setShowWelcome(false)}
+            >
+              Tiếp tục xem portfolio <ArrowUpRight size={17} />
+            </button>
+          </section>
+        </div>
+      ) : null}
 
       <header className="topbar">
         <a className="brand" href="#top" onClick={closeMenu} aria-label="Về đầu trang">
