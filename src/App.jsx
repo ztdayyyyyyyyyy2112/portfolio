@@ -3,6 +3,8 @@ import {
   ArrowUpRight,
   Box,
   BriefcaseBusiness,
+  ChevronLeft,
+  ChevronRight,
   Code2,
   GraduationCap,
   Languages,
@@ -51,6 +53,11 @@ const copy = {
     filterLabel: 'Filter projects',
     filters: ['All', 'Web', 'Research', 'Client', '3D'],
     liveDemo: 'Live demo',
+    exploreProject: 'Explore project',
+    spotlightKicker: 'Project spotlight',
+    closeSpotlight: 'Close project spotlight',
+    previousProject: 'Previous project',
+    nextProject: 'Next project',
     projectLink: 'project / GitHub link',
     source: 'Source',
     capabilities: 'Capabilities',
@@ -100,6 +107,11 @@ const copy = {
     filterLabel: 'Lọc dự án',
     filters: ['Tất cả', 'Web', 'NCKH', 'Client', '3D'],
     liveDemo: 'Live demo',
+    exploreProject: 'Khám phá dự án',
+    spotlightKicker: 'Góc dự án',
+    closeSpotlight: 'Đóng trang chi tiết dự án',
+    previousProject: 'Dự án trước',
+    nextProject: 'Dự án tiếp theo',
     projectLink: 'link dự án/github',
     source: 'Source',
     capabilities: 'Năng lực',
@@ -128,6 +140,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [filter, setFilter] = useState('all')
   const [showWelcome, setShowWelcome] = useState(true)
+  const [activeProjectId, setActiveProjectId] = useState(null)
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en')
   const text = copy[language]
 
@@ -145,13 +158,34 @@ function App() {
   }, [theme])
 
   useEffect(() => {
-    const closeWelcome = (event) => {
-      if (event.key === 'Escape') setShowWelcome(false)
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        if (activeProjectId !== null) setActiveProjectId(null)
+        else setShowWelcome(false)
+      }
+
+      if (activeProjectId !== null && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault()
+        const currentIndex = projects.findIndex((project) => project.id === activeProjectId)
+        const direction = event.key === 'ArrowRight' ? 1 : -1
+        const nextIndex = (currentIndex + direction + projects.length) % projects.length
+        setActiveProjectId(projects[nextIndex].id)
+      }
     }
 
-    document.addEventListener('keydown', closeWelcome)
-    return () => document.removeEventListener('keydown', closeWelcome)
-  }, [])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [activeProjectId])
+
+  useEffect(() => {
+    if (activeProjectId === null) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [activeProjectId])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -171,6 +205,13 @@ function App() {
     () => (filter === 'all' ? projects : projects.filter((project) => project.category === filter)),
     [filter],
   )
+  const activeProject = projects.find((project) => project.id === activeProjectId)
+  const activeProjectIndex = projects.findIndex((project) => project.id === activeProjectId)
+
+  const showAdjacentProject = (direction) => {
+    const nextIndex = (activeProjectIndex + direction + projects.length) % projects.length
+    setActiveProjectId(projects[nextIndex].id)
+  }
 
   const closeMenu = () => setMenuOpen(false)
   const isEnglish = language === 'en'
@@ -221,6 +262,75 @@ function App() {
             >
               {text.continue} <ArrowUpRight size={17} />
             </button>
+          </section>
+        </div>
+      ) : null}
+
+      {activeProject ? (
+        <div className="spotlight-overlay" onClick={() => setActiveProjectId(null)}>
+          <section
+            className="spotlight-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="spotlight-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="spotlight-stage">
+              <ProjectVisual
+                image={activeProject.image}
+                title={isEnglish ? activeProject.titleEn : activeProject.title}
+                accent={activeProject.accent}
+                type={projectTypeLabels[language][activeProject.type]}
+              />
+              <div className="spotlight-stage-shade" />
+              <div className="spotlight-stage-topline">
+                <span>{text.spotlightKicker}</span>
+                <span>{String(activeProjectIndex + 1).padStart(2, '0')} / {String(projects.length).padStart(2, '0')}</span>
+              </div>
+              <button
+                className="icon-button spotlight-close"
+                type="button"
+                onClick={() => setActiveProjectId(null)}
+                aria-label={text.closeSpotlight}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="spotlight-details">
+              <div className="spotlight-copy">
+                <p className="kicker">{projectTypeLabels[language][activeProject.type]} · {String(activeProject.id).padStart(2, '0')}</p>
+                <h2 id="spotlight-title">{isEnglish ? activeProject.titleEn : activeProject.title}</h2>
+                <p className="spotlight-description">{isEnglish ? activeProject.descriptionEn : activeProject.description}</p>
+                <div className="tag-row">
+                  {(isEnglish ? activeProject.tagsEn || activeProject.tags : activeProject.tags).map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+                <div className="spotlight-links">
+                  {activeProject.live ? (
+                    <a className="button button-primary" href={activeProject.live} target="_blank" rel="noreferrer">
+                      {text.liveDemo} <ArrowUpRight size={17} />
+                    </a>
+                  ) : null}
+                  {activeProject.repo ? (
+                    <a className="button button-ghost" href={activeProject.repo} target="_blank" rel="noreferrer">
+                      {text.source} <ArrowUpRight size={17} />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="spotlight-navigation">
+                <span>{text.spotlightKicker}</span>
+                <div>
+                  <button className="icon-button" type="button" onClick={() => showAdjacentProject(-1)} aria-label={text.previousProject}>
+                    <ChevronLeft size={19} />
+                  </button>
+                  <button className="icon-button" type="button" onClick={() => showAdjacentProject(1)} aria-label={text.nextProject}>
+                    <ChevronRight size={19} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       ) : null}
@@ -389,6 +499,9 @@ function App() {
                   <div className="tag-row">
                       {(isEnglish ? project.tagsEn || project.tags : project.tags).map((tag) => <span key={tag}>{tag}</span>)}
                   </div>
+                  <button className="spotlight-trigger" type="button" onClick={() => setActiveProjectId(project.id)}>
+                    {text.exploreProject} <ArrowUpRight size={15} />
+                  </button>
                   <div className="project-links">
                     {project.live ? (
                       <a href={project.live} target="_blank" rel="noreferrer">{text.liveDemo} <ArrowUpRight size={16} /></a>
